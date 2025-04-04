@@ -1,0 +1,48 @@
+name: Update age on birthday
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-age:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Configure Git
+        run: |
+          git config --local user.email "mikkelelvers@github.com"
+          git config --local user.name "qovi"
+      
+      - name: Check if it's birthday and update age
+        run: |
+          export BIRTHDAY="2006-11-08"
+          export BIRTHYEAR=$(echo $BIRTHDAY | cut -d'-' -f1)
+          export BIRTHMONTH=$(echo $BIRTHDAY | cut -d'-' -f2)
+          export BIRTHDAY=$(echo $BIRTHDAY | cut -d'-' -f3)
+          
+          export CURRENT_DATE=$(date +'%Y-%m-%d')
+          export CURRENT_YEAR=$(date +'%Y')
+          export CURRENT_MONTH=$(date +'%m')
+          export CURRENT_DAY=$(date +'%d')
+          
+          if [ "$BIRTHMONTH" = "$CURRENT_MONTH" ] && [ "$BIRTHDAY" = "$CURRENT_DAY" ]; then
+            export AGE=$((CURRENT_YEAR - BIRTHYEAR))
+            
+            echo "It's birthday! Updating age to $AGE"
+            
+            sed -i "s/XX/$AGE/g" README.md
+            
+            if git diff --exit-code; then
+              echo "No changes in README"
+              exit 0
+            fi
+            
+            git add README.md
+            git commit -m "Update age to $AGE"
+          else
+            echo "Not today ($CURRENT_DATE). Birthday is $BIRTHMONTH-$BIRTHDAY."
+            git push
+          fi
